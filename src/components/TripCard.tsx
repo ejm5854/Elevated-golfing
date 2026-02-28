@@ -59,6 +59,7 @@ export default function TripCard({ trip, onClick }: TripCardProps) {
         el.style.boxShadow = '0 2px 12px rgba(0,0,0,0.12)'
       }}
     >
+      {/* ── Cover photo ─────────────────────────────── */}
       <div style={{ position: 'relative', paddingTop: '66.67%', overflow: 'hidden' }}>
         <motion.img
           src={trip.coverPhotoUrl}
@@ -74,35 +75,50 @@ export default function TripCard({ trip, onClick }: TripCardProps) {
             objectFit: 'cover',
           }}
         />
+
+        {/* Gradient overlay */}
         <div style={{
           position: 'absolute', inset: 0,
           background: 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.1) 50%, transparent 100%)',
         }} />
+
+        {/* Rating badge — top right */}
         <div style={{
           position: 'absolute', top: 10, right: 10,
           backgroundColor: 'rgba(0,0,0,0.52)',
-          borderRadius: 8, padding: '4px 8px',
+          borderRadius: 8,
+          padding: '4px 8px',
           backdropFilter: 'blur(8px)',
           WebkitBackdropFilter: 'blur(8px)',
           border: '1px solid rgba(255,255,255,0.12)',
         }}>
           <StarRating value={trip.rating} readonly size="sm" />
         </div>
+
+        {/* Days badge — bottom left */}
         <div style={{
           position: 'absolute', bottom: 10, left: 10,
           backgroundColor: theme.accentHex,
-          borderRadius: 6, padding: '3px 9px',
-          fontSize: '0.68rem', fontWeight: 700,
-          color: theme.bgHex, letterSpacing: '0.06em',
-          textTransform: 'uppercase', fontFamily: bodyFont,
+          borderRadius: 6,
+          padding: '3px 9px',
+          fontSize: '0.68rem',
+          fontWeight: 700,
+          color: theme.bgHex,
+          letterSpacing: '0.06em',
+          textTransform: 'uppercase',
+          fontFamily: bodyFont,
         }}>
           {days} {days === 1 ? 'day' : 'days'}
         </div>
+
+        {/* Country badge — bottom right */}
         <div style={{
           position: 'absolute', bottom: 10, right: 10,
           backgroundColor: 'rgba(0,0,0,0.52)',
-          borderRadius: 6, padding: '3px 8px',
-          fontSize: '0.68rem', fontWeight: 500,
+          borderRadius: 6,
+          padding: '3px 8px',
+          fontSize: '0.68rem',
+          fontWeight: 500,
           color: 'rgba(255,255,255,0.88)',
           backdropFilter: 'blur(8px)',
           WebkitBackdropFilter: 'blur(8px)',
@@ -111,14 +127,22 @@ export default function TripCard({ trip, onClick }: TripCardProps) {
           {trip.destination.country}
         </div>
       </div>
+
+      {/* ── Card body ────────────────────────────────── */}
       <div style={{ padding: '1.1rem 1.1rem 1rem' }}>
+        {/* Destination + date */}
         <p style={{
-          color: theme.textMutedHex, fontSize: '0.68rem',
-          letterSpacing: '0.15em', textTransform: 'uppercase',
-          marginBottom: '0.35rem', fontWeight: 500,
+          color: theme.textMutedHex,
+          fontSize: '0.68rem',
+          letterSpacing: '0.15em',
+          textTransform: 'uppercase',
+          marginBottom: '0.35rem',
+          fontWeight: 500,
         }}>
           {trip.destination.city} · {formatMonthYear(trip.startDate)}
         </p>
+
+        {/* Title */}
         <h3 style={{
           fontFamily: displayFont,
           fontSize: isErik ? '1.2rem' : '1.15rem',
@@ -130,13 +154,26 @@ export default function TripCard({ trip, onClick }: TripCardProps) {
         }}>
           {trip.title}
         </h3>
-        <div style={{ height: 1, backgroundColor: `${theme.accentHex}18`, marginBottom: '0.75rem' }} />
+
+        {/* Divider */}
+        <div style={{
+          height: 1,
+          backgroundColor: `${theme.accentHex}18`,
+          marginBottom: '0.75rem',
+        }} />
+
+        {/* Tags */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
           {trip.tags.slice(0, 3).map((tag) => (
             <TagBadge key={tag} tag={tag} size="sm" />
           ))}
           {trip.tags.length > 3 && (
-            <span style={{ color: theme.textMutedHex, fontSize: '0.68rem', alignSelf: 'center', fontStyle: 'italic' }}>
+            <span style={{
+              color: theme.textMutedHex,
+              fontSize: '0.68rem',
+              alignSelf: 'center',
+              fontStyle: 'italic',
+            }}>
               +{trip.tags.length - 3} more
             </span>
           )}
