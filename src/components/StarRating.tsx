@@ -4,34 +4,57 @@ import { useTheme } from '@/hooks/useTheme'
 
 interface StarRatingProps {
   value: number
-  onChange?: (rating: number) => void
+  onChange?: (value: number) => void
+  /** lowercase alias — matches how TripCard/TripDetail call it */
   readonly?: boolean
-  size?: 'sm' | 'md' | 'lg'
+  /** PascalCase alias */
+  readOnly?: boolean
+  /** Override star color instead of theme accent */
+  color?: string
+  /** 'sm' = 12px, 'md' = 16px, 'lg' = 22px, or a direct pixel number */
+  size?: 'sm' | 'md' | 'lg' | number
 }
 
-const SIZE_MAP = { sm: 13, md: 18, lg: 24 }
+const SIZE_MAP: Record<string, number> = { sm: 12, md: 16, lg: 22 }
 
-export default function StarRating({ value, onChange, readonly = false, size = 'md' }: StarRatingProps) {
+export default function StarRating({
+  value,
+  onChange,
+  readonly: readonlyProp = false,
+  readOnly: readOnlyProp = false,
+  color,
+  size = 'md',
+}: StarRatingProps) {
   const { theme } = useTheme()
   const [hovered, setHovered] = useState(0)
-  const px = SIZE_MAP[size]
-  const display = readonly ? value : (hovered || value)
+
+  // Either spelling of readonly means read-only
+  const isReadOnly = readonlyProp || readOnlyProp
+
+  // Resolve pixel size: number -> use directly, string key -> look up map
+  const px = typeof size === 'number' ? size : (SIZE_MAP[size] ?? 16)
+
+  // Use explicit color override if provided, else theme accent
+  const starColor = color ?? theme.accentHex
+
+  const display = isReadOnly ? value : (hovered || value)
+
   return (
-    <div className="flex" style={{ gap: size === 'sm' ? 2 : 3, cursor: readonly ? 'default' : 'pointer' }}>
+    <div className="flex" style={{ gap: typeof size === 'string' && size === 'sm' ? 2 : 3, cursor: isReadOnly ? 'default' : 'pointer' }}>
       {[1, 2, 3, 4, 5].map((star) => {
         const filled = star <= display
         return (
           <motion.svg
             key={star}
             width={px} height={px} viewBox="0 0 24 24"
-            fill={filled ? theme.accentHex : 'none'}
-            stroke={filled ? theme.accentHex : `${theme.accentHex}66`}
+            fill={filled ? starColor : 'none'}
+            stroke={filled ? starColor : `${starColor}66`}
             strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round"
-            onMouseEnter={() => !readonly && setHovered(star)}
-            onMouseLeave={() => !readonly && setHovered(0)}
-            onClick={() => !readonly && onChange?.(star)}
-            whileHover={!readonly ? { scale: 1.2 } : {}}
-            whileTap={!readonly ? { scale: 0.9 } : {}}
+            onMouseEnter={() => !isReadOnly && setHovered(star)}
+            onMouseLeave={() => !isReadOnly && setHovered(0)}
+            onClick={() => !isReadOnly && onChange?.(star)}
+            whileHover={!isReadOnly ? { scale: 1.2 } : {}}
+            whileTap={!isReadOnly ? { scale: 0.9 } : {}}
             transition={{ duration: 0.12 }}
             style={{ flexShrink: 0 }}
           >
