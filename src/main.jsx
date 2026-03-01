@@ -1,2 +1,1 @@
-// Entry point handled by main.tsx
-export {};
+export { default } from './main.tsx'
