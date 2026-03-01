@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useTheme } from '@/hooks/useTheme'
 import StarRating from '@/components/StarRating'
-import PhotoUpload from '@/components/PhotoUpload'
 import TagBadge from '@/components/TagBadge'
 import type { Trip, TripFormData } from '@/types'
 
@@ -49,200 +48,256 @@ export default function TripForm({ initialValues, onSubmit, onCancel, mode }: Tr
     color: theme.textHex, fontSize: '0.9rem', outline: 'none', fontFamily: bodyFont,
   }
   const labelStyle: React.CSSProperties = {
-    display: 'block', fontSize: '0.75rem', fontWeight: 600, color: theme.textMutedHex,
-    textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.4rem',
+    display: 'block', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.06em',
+    textTransform: 'uppercase', color: theme.accentHex, marginBottom: '0.35rem',
   }
-  const errorStyle: React.CSSProperties = { color: '#ef4444', fontSize: '0.75rem', marginTop: '0.25rem' }
 
-  function toggleTag(tag: string) {
-    setTags((prev) => prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag])
-  }
-  function addCustomTag() {
-    const t = customTag.trim().toLowerCase()
-    if (t && !tags.includes(t)) setTags((prev) => [...prev, t])
-    setCustomTag('')
-  }
-  function validate(): boolean {
+  function validate() {
     const e: Record<string, string> = {}
-    if (!title.trim())   e.title     = 'Title is required.'
-    if (!city.trim())    e.city      = 'City is required.'
-    if (!country.trim()) e.country   = 'Country is required.'
-    if (!startDate)      e.startDate = 'Start date is required.'
-    if (!endDate)        e.endDate   = 'End date is required.'
-    if (startDate && endDate && endDate < startDate) e.endDate = 'End date must be after start date.'
-    if (lat && isNaN(Number(lat))) e.lat = 'Latitude must be a number.'
-    if (lng && isNaN(Number(lng))) e.lng = 'Longitude must be a number.'
+    if (!title.trim()) e.title = 'Title is required'
+    if (!city.trim()) e.city = 'City is required'
+    if (!country.trim()) e.country = 'Country is required'
+    if (!startDate) e.startDate = 'Start date is required'
     setErrors(e)
     return Object.keys(e).length === 0
   }
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
+
+  function handleSubmit(ev: React.FormEvent) {
+    ev.preventDefault()
     if (!validate()) return
-    const data: TripFormData = {
-      title: title.trim(),
+    onSubmit({
+      title, notes, rating, tags, coverPhotoUrl, erikAttended, marisaAttended,
       destination: {
-        city: city.trim(), country: country.trim(),
-        countryCode: countryCode.trim().toUpperCase() || country.slice(0, 2).toUpperCase(),
-        continent, coordinates: { lat: Number(lat) || 0, lng: Number(lng) || 0 },
+        city, country, countryCode, continent,
+        coordinates: lat && lng ? { lat: parseFloat(lat), lng: parseFloat(lng) } : undefined,
       },
       startDate, endDate,
-      coverPhotoUrl: coverPhotoUrl || `https://picsum.photos/seed/${encodeURIComponent(city)}/800/600`,
-      photos: initialValues?.photos ?? [],
-      notes: notes.trim(), rating, tags, erikAttended, marisaAttended,
-    }
-    onSubmit(data)
+    })
+  }
+
+  function addTag(tag: string) {
+    const t = tag.trim().toLowerCase()
+    if (t && !tags.includes(t)) setTags([...tags, t])
+  }
+  function removeTag(tag: string) { setTags(tags.filter(t => t !== tag)) }
+
+  const sectionStyle: React.CSSProperties = {
+    backgroundColor: theme.cardBgHex,
+    border: `1px solid ${theme.accentHex}22`,
+    borderRadius: 14,
+    padding: '1.25rem 1.5rem',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '1rem',
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate style={{ fontFamily: bodyFont }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <motion.form
+      onSubmit={handleSubmit}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', fontFamily: bodyFont }}
+    >
+      {/* SECTION: Cover Photo */}
+      <div style={sectionStyle}>
+        <label style={{ ...labelStyle, marginBottom: 0 }}>Cover Photo</label>
+          <div
+            style={{
+              border: `2px dashed ${theme.accentHex}40`,
+              borderRadius: 12,
+              padding: '1.25rem',
+              textAlign: 'center',
+              cursor: 'pointer',
+              position: 'relative',
+            }}
+            onClick={() => document.getElementById('cover-photo-input')?.click()}
+          >
+            <input
+              id="cover-photo-input"
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (!file) return
+                const reader = new FileReader()
+                reader.onload = (ev) => setCoverPhotoUrl(ev.target?.result as string)
+                reader.readAsDataURL(file)
+              }}
+            />
+            {coverPhotoUrl && coverPhotoUrl.startsWith('data:') ? (
+              <img src={coverPhotoUrl} alt="Cover preview" style={{ width: '100%', height: 160, objectFit: 'cover', borderRadius: 8 }} />
+            ) : (
+              <>
+                <div style={{ fontSize: '1.5rem', marginBottom: '0.4rem' }}>🖼️</div>
+                <p style={{ color: theme.accentHex, fontSize: '0.82rem', fontWeight: 600 }}>Upload cover photo</p>
+                <p style={{ color: theme.textMutedHex, fontSize: '0.7rem' }}>Click to browse — max 4MB</p>
+              </>
+            )}
+          </div>
+      </div>
 
-        {/* Title */}
+      {/* SECTION: Core Info */}
+      <div style={sectionStyle}>
         <div>
-          <label style={labelStyle}>Trip Title *</label>
-          <input style={inputStyle} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Golden Hour in Hawaii" />
-          {errors.title && <p style={errorStyle}>{errors.title}</p>}
+          <label style={labelStyle}>Trip Title</label>
+          <input style={inputStyle} value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Japan Spring 2025" />
+          {errors.title && <p style={{ color: '#f87171', fontSize: '0.75rem', marginTop: 4 }}>{errors.title}</p>}
         </div>
-
-        {/* Destination */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
           <div>
-            <label style={labelStyle}>City *</label>
-            <input style={inputStyle} value={city} onChange={(e) => setCity(e.target.value)} placeholder="e.g. Maui" />
-            {errors.city && <p style={errorStyle}>{errors.city}</p>}
+            <label style={labelStyle}>City</label>
+            <input style={inputStyle} value={city} onChange={e => setCity(e.target.value)} placeholder="Tokyo" />
+            {errors.city && <p style={{ color: '#f87171', fontSize: '0.75rem', marginTop: 4 }}>{errors.city}</p>}
           </div>
           <div>
-            <label style={labelStyle}>Country *</label>
-            <input style={inputStyle} value={country} onChange={(e) => setCountry(e.target.value)} placeholder="e.g. United States" />
-            {errors.country && <p style={errorStyle}>{errors.country}</p>}
+            <label style={labelStyle}>Country</label>
+            <input style={inputStyle} value={country} onChange={e => setCountry(e.target.value)} placeholder="Japan" />
+            {errors.country && <p style={{ color: '#f87171', fontSize: '0.75rem', marginTop: 4 }}>{errors.country}</p>}
           </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
           <div>
             <label style={labelStyle}>Country Code</label>
-            <input style={inputStyle} value={countryCode} onChange={(e) => setCountryCode(e.target.value)} placeholder="e.g. US" maxLength={2} />
+            <input style={inputStyle} value={countryCode} onChange={e => setCountryCode(e.target.value.toUpperCase())} placeholder="JP" maxLength={2} />
           </div>
           <div>
             <label style={labelStyle}>Continent</label>
-            <select style={inputStyle} value={continent} onChange={(e) => setContinent(e.target.value)}>
-              {CONTINENT_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+            <select style={inputStyle} value={continent} onChange={e => setContinent(e.target.value)}>
+              {CONTINENT_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
         </div>
-
-        {/* Coordinates */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
           <div>
-            <label style={labelStyle}>Latitude (for map pin)</label>
-            <input style={inputStyle} value={lat} onChange={(e) => setLat(e.target.value)} placeholder="e.g. 20.7984" />
-            {errors.lat && <p style={errorStyle}>{errors.lat}</p>}
+            <label style={labelStyle}>Latitude</label>
+            <input style={inputStyle} value={lat} onChange={e => setLat(e.target.value)} placeholder="35.6762" />
           </div>
           <div>
-            <label style={labelStyle}>Longitude (for map pin)</label>
-            <input style={inputStyle} value={lng} onChange={(e) => setLng(e.target.value)} placeholder="e.g. -156.3319" />
-            {errors.lng && <p style={errorStyle}>{errors.lng}</p>}
+            <label style={labelStyle}>Longitude</label>
+            <input style={inputStyle} value={lng} onChange={e => setLng(e.target.value)} placeholder="139.6503" />
           </div>
         </div>
+      </div>
 
-        {/* Dates */}
+      {/* SECTION: Dates */}
+      <div style={sectionStyle}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
           <div>
-            <label style={labelStyle}>Start Date *</label>
-            <input style={inputStyle} type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-            {errors.startDate && <p style={errorStyle}>{errors.startDate}</p>}
+            <label style={labelStyle}>Start Date</label>
+            <input type="date" style={inputStyle} value={startDate} onChange={e => setStartDate(e.target.value)} />
+            {errors.startDate && <p style={{ color: '#f87171', fontSize: '0.75rem', marginTop: 4 }}>{errors.startDate}</p>}
           </div>
           <div>
-            <label style={labelStyle}>End Date *</label>
-            <input style={inputStyle} type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-            {errors.endDate && <p style={errorStyle}>{errors.endDate}</p>}
+            <label style={labelStyle}>End Date</label>
+            <input type="date" style={inputStyle} value={endDate} onChange={e => setEndDate(e.target.value)} />
           </div>
         </div>
+      </div>
 
-        {/* Cover photo */}
-        <div>
-          <label style={labelStyle}>Cover Photo</label>
-          <p style={{ color: theme.textMutedHex, fontSize: '0.75rem', marginBottom: '0.5rem' }}>
-            Upload an image or paste a URL below. Leave blank to auto-generate a placeholder.
-          </p>
-          <PhotoUpload onUpload={(b64) => setCoverPhotoUrl(b64)} label="Upload cover photo" />
-          <input
-            style={{ ...inputStyle, marginTop: '0.75rem' }}
-            value={typeof coverPhotoUrl === 'string' && !coverPhotoUrl.startsWith('data:') ? coverPhotoUrl : ''}
-            onChange={(e) => setCoverPhotoUrl(e.target.value)}
-            placeholder="…or paste an image URL"
-          />
-        </div>
-
-        {/* Rating */}
+      {/* SECTION: Rating */}
+      <div style={sectionStyle}>
         <div>
           <label style={labelStyle}>Rating</label>
           <StarRating value={rating} onChange={setRating} size="lg" />
         </div>
+      </div>
 
-        {/* Notes */}
+      {/* SECTION: Notes */}
+      <div style={sectionStyle}>
         <div>
           <label style={labelStyle}>Notes</label>
           <textarea
-            style={{ ...inputStyle, minHeight: 100, resize: 'vertical' }}
+            style={{ ...inputStyle, minHeight: 90, resize: 'vertical' }}
             value={notes}
-            onChange={(e) => setNotes(e.target.value)}
+            onChange={e => setNotes(e.target.value)}
             placeholder="What made this trip special?"
           />
         </div>
+      </div>
 
-        {/* Tags */}
+      {/* SECTION: Tags */}
+      <div style={sectionStyle}>
         <div>
           <label style={labelStyle}>Tags</label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.75rem' }}>
-            {TAG_SUGGESTIONS.map((tag) => (
-              <TagBadge key={tag} tag={tag} active={tags.includes(tag)} onClick={() => toggleTag(tag)} size="sm" />
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.6rem' }}>
+            {tags.map(t => (
+              <TagBadge key={t} tag={t} onRemove={() => removeTag(t)} />
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
+            {TAG_SUGGESTIONS.filter(s => !tags.includes(s)).map(s => (
+              <button
+                key={s} type="button"
+                onClick={() => addTag(s)}
+                style={{
+                  padding: '0.2rem 0.65rem', borderRadius: 20,
+                  border: `1px solid ${theme.accentHex}44`,
+                  background: 'transparent', color: theme.textMutedHex,
+                  fontSize: '0.72rem', cursor: 'pointer', fontFamily: bodyFont,
+                }}
+              >{s}</button>
             ))}
           </div>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <input
               style={{ ...inputStyle, flex: 1 }}
               value={customTag}
-              onChange={(e) => setCustomTag(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomTag())}
+              onChange={e => setCustomTag(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(customTag); setCustomTag('') } }}
               placeholder="Add custom tag…"
             />
-            <motion.button type="button" whileTap={{ scale: 0.95 }} onClick={addCustomTag}
-              style={{ backgroundColor: `${theme.accentHex}22`, color: theme.accentHex, border: `1px solid ${theme.accentHex}44`, borderRadius: 10, padding: '0.65rem 1rem', fontSize: '0.85rem', cursor: 'pointer', fontFamily: bodyFont, whiteSpace: 'nowrap' }}>
-              + Add
-            </motion.button>
+            <button
+              type="button"
+              onClick={() => { addTag(customTag); setCustomTag('') }}
+              style={{
+                padding: '0.65rem 1rem', borderRadius: 10, cursor: 'pointer',
+                border: 'none', background: theme.accentHex, color: '#fff',
+                fontSize: '0.85rem', fontFamily: bodyFont,
+              }}
+            >Add</button>
           </div>
-          {tags.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.6rem' }}>
-              {tags.map((tag) => (
-                <TagBadge key={tag} tag={tag} active onClick={() => toggleTag(tag)} size="sm" />
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Who attended */}
-        <div>
-          <label style={labelStyle}>Who Was There?</label>
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
-            {[{ label: 'Erik', value: erikAttended, set: setErikAttended }, { label: 'Marisa', value: marisaAttended, set: setMarisaAttended }].map(({ label, value, set }) => (
-              <motion.button key={label} type="button" whileTap={{ scale: 0.95 }} onClick={() => set(!value)}
-                style={{ flex: 1, padding: '0.65rem', borderRadius: 10, border: `1px solid ${value ? theme.accentHex : `${theme.accentHex}30`}`, backgroundColor: value ? `${theme.accentHex}18` : 'transparent', color: value ? theme.accentHex : theme.textMutedHex, cursor: 'pointer', fontFamily: bodyFont, fontWeight: 600, fontSize: '0.9rem', transition: 'all 0.18s' }}>
-                {value ? '✓ ' : ''}{label}
-              </motion.button>
-            ))}
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div style={{ display: 'flex', gap: '0.75rem', paddingTop: '0.5rem' }}>
-          <motion.button type="submit" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
-            style={{ flex: 1, backgroundColor: theme.accentHex, color: theme.bgHex, border: 'none', borderRadius: 9999, padding: '0.8rem 1.5rem', fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', fontFamily: bodyFont, letterSpacing: '0.04em', boxShadow: `0 4px 18px ${theme.accentHex}38` }}>
-            {mode === 'create' ? 'Save Trip ✈️' : 'Save Changes'}
-          </motion.button>
-          <motion.button type="button" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={onCancel}
-            style={{ backgroundColor: 'transparent', color: theme.textMutedHex, border: `1px solid ${theme.accentHex}30`, borderRadius: 9999, padding: '0.8rem 1.5rem', fontSize: '0.9rem', cursor: 'pointer', fontFamily: bodyFont }}>
-            Cancel
-          </motion.button>
         </div>
       </div>
-    </form>
+
+      {/* SECTION: Travelers */}
+      <div style={sectionStyle}>
+        <label style={{ ...labelStyle, marginBottom: 0 }}>Who Traveled</label>
+        <div style={{ display: 'flex', gap: '1.5rem' }}>
+          {[['erik', erikAttended, setErikAttended], ['marisa', marisaAttended, setMarisaAttended]].map(([name, val, setter]) => (
+            <label key={name as string} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontFamily: bodyFont, fontSize: '0.9rem', color: theme.textHex }}>
+              <input
+                type="checkbox"
+                checked={val as boolean}
+                onChange={e => (setter as (v: boolean) => void)(e.target.checked)}
+                style={{ accentColor: theme.accentHex, width: 16, height: 16 }}
+              />
+              {(name as string).charAt(0).toUpperCase() + (name as string).slice(1)}
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* ACTIONS */}
+      <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+        <button
+          type="button" onClick={onCancel}
+          style={{
+            padding: '0.65rem 1.5rem', borderRadius: 10, cursor: 'pointer',
+            border: `1px solid ${theme.accentHex}44`, background: 'transparent',
+            color: theme.textMutedHex, fontSize: '0.9rem', fontFamily: bodyFont,
+          }}
+        >Cancel</button>
+        <motion.button
+          type="submit"
+          whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+          style={{
+            padding: '0.65rem 1.75rem', borderRadius: 10, cursor: 'pointer',
+            border: 'none', background: theme.accentHex, color: '#fff',
+            fontSize: '0.9rem', fontWeight: 700, fontFamily: bodyFont,
+          }}
+        >{mode === 'create' ? 'Create Trip' : 'Save Changes'}</motion.button>
+      </div>
+    </motion.form>
   )
 }
